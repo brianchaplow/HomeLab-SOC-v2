@@ -1,0 +1,155 @@
+# Docker Compose - HomeLab SOC v2 Stack
+# Location: /share/Container/SOC/compose/docker-compose.yml
+# Updated: January 2026 - VLAN architecture
+# Network: VLAN 20 (SOC) - 10.10.20.0/24
+# Host: smokehouse (QNAP TVS-871)
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # OpenSearch - SIEM Backend
+  # ==========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=false
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD}
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - /share/Container/SOC/containers/opensearch/data:/usr/share/opensearch/data
+    networks:
+      - soc-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ==========================================================================
+  # OpenSearch Dashboards - Visualization
+  # ==========================================================================
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    restart: unless-stopped
+    environment:
+      # smokehouse IP on VLAN 20 (SOC)
+      - 'OPENSEARCH_HOSTS=["https://10.10.20.10:9200"]'
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    networks:
+      - soc-network
+
+  # ==========================================================================
+  # Suricata - Network IDS
+  # Uses host network for SPAN capture on eth4 (no IP assigned)
+  # Port mirror: MokerLink all ports → TE10 (SFP+)
+  # Rules: 47,290 ET Open (requires suricata-update after restart)
+  # ==========================================================================
+  suricata-live:
+    image: jasonish/suricata:latest
+    container_name: suricata-live
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+      - NET_RAW
+    command: -i eth4
+    volumes:
+      - /share/Container/SOC/logs/suricata:/var/log/suricata
+      - /share/Container/SOC/containers/suricata/rules:/var/lib/suricata/rules
+      - /share/Container/SOC/containers/suricata/config:/etc/suricata
+
+  # ==========================================================================
+  # Fluent Bit - Log Aggregation
+  # Collects: Suricata eve.json, Zeek logs, syslog (TCP/UDP 5514)
+  # ==========================================================================
+  fluentbit:
+    image: fluent/fluent-bit:latest
+    container_name: fluentbit
+    restart: unless-stopped
+    environment:
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+    ports:
+      - "5514:5514/tcp"
+      - "5514:5514/udp"
+    volumes:
+      - /share/Container/SOC/ingestion/fluentbit:/fluentbit
+      - /share/Container/SOC/logs/suricata:/logs/suricata:ro
+      - /share/Container/SOC/logs/zeek:/logs/zeek:ro
+    networks:
+      - soc-network
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+  # ==========================================================================
+  # Zeek - Network Security Monitor
+  # Passive network analysis on eth4 (SPAN port)
+  # ==========================================================================
+  zeek:
+    image: zeek/zeek:latest
+    container_name: zeek
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - /share/Container/SOC/logs/zeek:/var/log/zeek
+
+  # ==========================================================================
+  # CyberChef - Data Analysis
+  # Web-based encoding/decoding/analysis toolkit
+  # ==========================================================================
+  cyberchef:
+    image: mpepping/cyberchef:latest
+    container_name: cyberchef
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - soc-network
+
+  # ==========================================================================
+  # SOC Automation - Threat Intel & Response
+  # Runs: enrichment.py, autoblock.py, digest.py
+  # Schedule: cron inside container
+  # ==========================================================================
+  soc-automation:
+    build: /share/Container/SOC/containers/soc-automation
+    container_name: soc-automation
+    restart: unless-stopped
+    environment:
+      # smokehouse IP on VLAN 20
+      - OPENSEARCH_HOST=10.10.20.10
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USER=admin
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    volumes:
+      - /share/Container/SOC/containers/soc-automation/scripts:/app
+    networks:
+      - soc-network
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+networks:
+  soc-network:
+    driver: bridge
