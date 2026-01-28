@@ -5,7 +5,7 @@ This document walks through a purple team exercise demonstrating the full detect
 ## Scenario
 
 **Objective:** Validate SQL injection detection capabilities  
-**Attack Platform:** sear (Kali) on VLAN 20 (10.10.20.101)  
+**Attack Platform:** sear (Kali) on VLAN 20 (10.10.20.20)  
 **Target:** DVWA on VLAN 40 (10.10.40.10)  
 **Expected:** Suricata alerts, full network flow capture, SIEM visibility
 
@@ -68,7 +68,7 @@ The following signatures triggered during the attack:
 ```json
 {
   "event_type": "alert",
-  "src_ip": "10.10.20.101",
+  "src_ip": "10.10.20.20",
   "dest_ip": "10.10.40.10",
   "alert": {
     "signature": "ET WEB_SERVER SQL Injection Attempt - UNION SELECT",
@@ -107,7 +107,7 @@ GET fluentbit-default/_search
     "bool": {
       "must": [
         {"term": {"event_type": "alert"}},
-        {"term": {"src_ip": "10.10.20.101"}},
+        {"term": {"src_ip": "10.10.20.20"}},
         {"term": {"dest_ip": "10.10.40.10"}},
         {"range": {"@timestamp": {"gte": "now-1h"}}}
       ]
@@ -145,7 +145,7 @@ ping 8.8.8.8        # Internet - blocked
 The SQLmap attack should appear as:
 - Spike in alert volume
 - Top signature: SQL Injection attempts
-- Source: 10.10.20.101 (sear)
+- Source: 10.10.20.20 (sear)
 - Destination: 10.10.40.10 (DVWA)
 
 ### Timeline View
@@ -172,7 +172,7 @@ The SQLmap attack should appear as:
 {
   "@timestamp": "2026-01-09T14:30:45.123Z",
   "event_type": "alert",
-  "src_ip": "10.10.20.101",
+  "src_ip": "10.10.20.20",
   "src_port": 45678,
   "dest_ip": "10.10.40.10",
   "dest_port": 80,

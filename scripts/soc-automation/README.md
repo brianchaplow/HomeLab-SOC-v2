@@ -234,6 +234,6 @@ docker exec soc-automation tail -50 /app/logs/digest.log
 
 Current production metrics:
 - **1,459+ IPs** automatically blocked
-- **47,290** Suricata rules active
+- **47,487** Suricata rules active
 - **2x daily** watch turnover reports
 - **<1 min** average response time for high-threat alerts

@@ -151,7 +151,7 @@ Description: IoT cannot reach internal networks
 | Hostname | Model | IP | VLAN | Role | Specs |
 |----------|-------|-----|------|------|-------|
 | smokehouse | QNAP TVS-871 | 10.10.20.10 | 20 | SOC platform | i7-4790S, 16GB, 32TB |
-| sear | ROG Strix G512LI | 10.10.20.101 | 20 | Kali attack box | i7-10750H, 32GB |
+| sear | ROG Strix G512LI | 10.10.20.20 | 20 | Kali attack box | i7-10750H, 32GB |
 | PITBOSS | TUF Dash 15 | 10.10.10.100 | 10 | Management | i7-12650H, 32GB |
 | pitcrew | ThinkStation P340 | 10.10.30.20 | 30 | Proxmox (AD lab) | i7-10700T, 32GB |
 | smoker | ThinkStation P340 | 10.10.30.21 | 30 | Proxmox (targets) | i7-10700T, 32GB |
@@ -188,7 +188,7 @@ Internet → Cloudflare (WAF/Bot Fight)
 All VLANs → MokerLink switch
           → Port mirror to TE10
           → smokehouse eth4 (SPAN, no IP)
-          → Suricata IDS (47,290 rules)
+          → Suricata IDS (47,487 rules)
           → eve.json
           → Fluent Bit
           → OpenSearch (fluentbit-default)

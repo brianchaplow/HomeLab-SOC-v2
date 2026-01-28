@@ -9,7 +9,7 @@
 enrichment:
   # AbuseIPDB settings
   abuseipdb:
-    enabled: true
+    enabled: false
     # Free tier: 1000 checks/day - be conservative
     daily_limit: 900
     # Cache results for 24 hours (don't re-check same IP)
@@ -30,7 +30,7 @@ enrichment:
 # AUTO-BLOCK SETTINGS
 # =============================================================================
 blocking:
-  enabled: true
+  enabled: false
   
   # CRITICAL: Only block CONFIRMED malicious IPs
   # AbuseIPDB score ranges:
@@ -46,7 +46,7 @@ blocking:
   
   # Cloudflare block settings
   cloudflare:
-    enabled: true
+    enabled: false
     # Block mode: "block" or "challenge" (captcha)
     action: "block"
     # Note added to firewall rule
@@ -93,7 +93,7 @@ whitelist:
 digest:
   # Discord channel for reports
   discord:
-    enabled: true
+    enabled: false
     # Use thread for long reports (keeps channel clean)
     use_threads: false
   

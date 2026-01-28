@@ -35,7 +35,7 @@ This is the **second iteration** of my HomeLab SOC project. The original ([HomeL
 
 | Metric | Value |
 |--------|-------|
-| 🎯 **Suricata Rules** | 47,290 (ET Open) |
+| 🎯 **Suricata Rules** | 47,487 (ET Open) |
 | 🚫 **IPs Auto-Blocked** | 1,459+ at Cloudflare edge |
 | 🌐 **VLANs** | 5 (enterprise segmentation) |
 | 🖥️ **Windows Events** | 83K+ across AD lab |
@@ -49,58 +49,68 @@ This is the **second iteration** of my HomeLab SOC project. The original ([HomeL
 Traffic flows through three security layers before reaching the SOC:
 
 ```
-                         ┌─────────────────┐
-                         │    INTERNET     │
-                         └────────┬────────┘
-                                  │
-               ┌──────────────────▼──────────────────┐
-               │          CLOUDFLARE (Edge)          │
-               │   WAF • Bot Fight Mode • JA3        │
-               │   Auto-block API ← SOC Automation   │
-               └──────────────────┬──────────────────┘
-                                  │
-                     brianchaplow.com
-                     bytesbourbonbbq.com
-                                  │
-               ┌──────────────────▼──────────────────┐
-               │         GCP VM (Origin)             │
-               │   Apache • Fluent Bit • Umami       │
-               │   <your-gcp-ip>                     │
-               └──────────────────┬──────────────────┘
-                                  │
-                      Tailscale WireGuard Tunnel
-                                  │
-               ┌──────────────────▼──────────────────┐
-               │        OPNsense Firewall            │
-               │   Protectli VP2420 • VLAN Gateway   │
-               │   10.10.10.1                        │
-               └──────────────────┬──────────────────┘
-                                  │
-               ┌──────────────────▼──────────────────┐
-               │       MokerLink 10G Switch          │
-               │   L3 • Port Mirror (SPAN)           │
-               │   10.10.10.2                        │
-               └──────────────────┬──────────────────┘
-                                  │
-      ┌───────────┬───────────────┼───────────────┬───────────┐
-      │           │               │               │           │
-   VLAN 10    VLAN 20         VLAN 30        VLAN 40     VLAN 50
-   Mgmt       SOC             Lab            Targets     IoT
-  10.10.10.x  10.10.20.x     10.10.30.x     10.10.40.x  10.10.50.x
-              │               │              │
-              │          ┌────┴────┐         │
-              │          │ Proxmox │         │
-              │          │ AD Lab  │         │
-              │          │DC01/WS01│         │
-              │          └─────────┘         │
-              │                              │
-       ┌──────┴──────┐               ┌───────┴───────┐
-       │smokehouse   │               │    Targets    │
-       │ OpenSearch  │               │ DVWA • Juice  │
-       │ Suricata    │               │ Metasploitable│
-       │ Automation  │               └───────────────┘
-       └─────────────┘
+                         ┌─────────────────────┐
+                         │      INTERNET       │
+                         └──────────┬──────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │          CLOUDFLARE (Edge)              │
+               │   WAF • Bot Fight Mode • JA3            │
+               │   Auto-block API ← SOC Automation       │
+               │   brianchaplow.com • bytesbourbonbbq.com│
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │          GCP VM (Origin)                │
+               │   Apache • Fluent Bit • Umami           │
+               │   34.48.201.94 (Tailscale: 100.125.40.97)│
+               └────────────────────┬────────────────────┘
+                                    │
+                       Tailscale WireGuard Tunnel
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │         OPNsense Firewall               │
+               │   Protectli VP2420 • VLAN Gateway       │
+               │   10.10.10.1                            │
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │        MokerLink 10G Switch             │
+               │   12-Port L3 • Port Mirror (SPAN)       │
+               │   10.10.10.2 • All VLANs → eth4         │
+               └────────────────────┬────────────────────┘
+                                    │
+      ┌───────────┬─────────────────┼─────────────────┬───────────┐
+      │           │                 │                 │           │
+   VLAN 10     VLAN 20           VLAN 30          VLAN 40     VLAN 50
+   Mgmt        SOC               Lab              Targets     IoT
+ 10.10.10.x  10.10.20.x        10.10.30.x       10.10.40.x  10.10.50.x
+      │           │                 │                 │           │
+   PITBOSS   ┌────┴────┐      ┌─────┴─────┐     ┌────┴────┐   TP-Link
+             │smokehouse│      │  Proxmox  │     │ DVWA    │   Switch
+             │(QNAP)   │      │ pitcrew   │     │ Juice   │
+             │OpenSearch│      │ smoker    │     │ Shop    │
+             │Suricata │      ├───────────┤     │ Meta-   │
+             │9 contain.│      │  AD Lab   │     │ sploit  │
+             ├─────────┤      │ DC01/WS01 │     │ able    │
+             │  sear   │      │smokehouse │     │         │
+             │ (Kali)  │      │  .local   │     │ISOLATED │
+             └─────────┘      └───────────┘     └─────────┘
+                  │                                   ▲
+                  │        Purple Team Attacks        │
+                  └───────────────────────────────────┘
 ```
+
+### Data Flows
+
+```
+Web Traffic:     Internet → Cloudflare → GCP → Tailscale → OpenSearch
+SPAN Capture:    All VLANs → MokerLink TE10 → smokehouse eth4 → Suricata
+Windows Events:  DC01/WS01 → Sysmon → Fluent Bit → OpenSearch
+Threat Intel:    New IP → AbuseIPDB → Score ≥90 → Cloudflare Auto-Block
+Purple Team:     sear (VLAN 20) → Targets (VLAN 40) → Detection Validation
+```
+
 
 ---
 
@@ -128,7 +138,7 @@ Traffic flows through three security layers before reaching the SOC:
 | Hostname | Role | VLAN | IP |
 |----------|------|------|-----|
 | **smokehouse** | QNAP NAS (SOC platform) | 20 | 10.10.20.10 |
-| **sear** | Kali attack box | 20 | 10.10.20.101 |
+| **sear** | Kali attack box | 20 | 10.10.20.20 |
 | **PITBOSS** | Windows laptop | 10 | 10.10.10.100 |
 | **pitcrew** | Proxmox (AD lab) | 30 | 10.10.30.20 |
 | **smoker** | Proxmox (targets) | 30 | 10.10.30.21 |
@@ -143,11 +153,13 @@ Traffic flows through three security layers before reaching the SOC:
 |-----------|------|---------|
 | **OpenSearch** | 9200 | SIEM backend, log storage |
 | **OpenSearch Dashboards** | 5601 | Visualization, threat hunting |
-| **Suricata** | Host network | Network IDS (47K+ rules) |
+| **Suricata** | Host network | Network IDS (47,487 rules) |
 | **Fluent Bit** | 5514 | Log aggregation |
 | **soc-automation** | — | Enrichment, auto-blocking |
 | **Zeek** | — | Network security monitor |
 | **CyberChef** | 8000 | Data analysis |
+| **InfluxDB** | 8086 | Time-series metrics |
+| **Grafana** | 3000 | Infrastructure dashboards |
 
 ### AD Lab (VLAN 30)
 

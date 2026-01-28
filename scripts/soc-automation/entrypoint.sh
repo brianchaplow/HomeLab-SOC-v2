@@ -5,6 +5,10 @@ echo "[$(date)] SOC Automation starting..."
 echo "[$(date)] Running initial enrichment..."
 cd /app && python scripts/enrichment.py --startup 2>&1 | tee -a /app/logs/enrichment.log
 
+# Test ML model loading
+echo "[$(date)] Testing ML model..."
+cd /app && python scripts/ml_scorer.py --test 2>&1 | tee -a /app/logs/ml_scorer.log
+
 echo "[$(date)] Starting scheduler loop..."
 
 # Simple scheduler loop
@@ -12,6 +16,12 @@ while true; do
     MINUTE=$(date +%M)
     HOUR=$(date +%H)
     DOW=$(date +%u)  # 1=Monday, 7=Sunday
+    
+    # Every 5 minutes: ML scoring
+    if [ $((10#$MINUTE % 5)) -eq 0 ]; then
+        echo "[$(date)] Running ML scorer..."
+        cd /app && python scripts/ml_scorer.py >> /app/logs/ml_scorer.log 2>&1
+    fi
     
     # Every 15 minutes: enrichment
     if [ $((10#$MINUTE % 15)) -eq 0 ]; then

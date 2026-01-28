@@ -93,7 +93,7 @@ This release represents a complete infrastructure overhaul from v1's flat networ
 
 **SOC Stack**
 - OpenSearch SIEM
-- Suricata IDS (47,290 ET Open rules)
+- Suricata IDS (47,487 ET Open rules)
 - Fluent Bit log aggregation
 - CyberChef analysis tool
 
@@ -117,7 +117,7 @@ This release represents a complete infrastructure overhaul from v1's flat networ
 |--------|-----|-----|
 | QNAP NAS | 192.168.50.10 | 10.10.20.10 |
 | Router/Gateway | 192.168.50.1 | 10.10.10.1 (OPNsense) |
-| Kali | 192.168.50.X | 10.10.20.101 |
+| Kali | 192.168.50.X | 10.10.20.20 |
 
 ### Config File Updates Required
 

@@ -25,9 +25,11 @@ services:
       - ./config:/app/config:ro
       - ./logs:/app/logs
       - ./data:/app/data           # Persistent data (whitelists, cache)
-    
+      - ./entrypoint.sh:/entrypoint.sh:ro
+      - ./models:/app/models:ro	    
     environment:
       # OpenSearch Connection (via Tailscale)
+      - RESEARCH_MODE=${RESEARCH_MODE:-false}
       - OPENSEARCH_HOST=${OPENSEARCH_HOST:-100.110.112.98}
       - OPENSEARCH_PORT=${OPENSEARCH_PORT:-9200}
       - OPENSEARCH_USER=${OPENSEARCH_USER:-admin}
@@ -48,6 +50,7 @@ services:
       
       # Blocking threshold (only block >= this score)
       - BLOCK_THRESHOLD=${BLOCK_THRESHOLD:-90}
+      - ML_MODEL_DIR=/app/models/ground_truth_v2_xgb_20260127_171501
     
     # Keep container running for cron
     tty: true
