@@ -30,7 +30,7 @@ services:
     environment:
       # OpenSearch Connection (via Tailscale)
       - RESEARCH_MODE=${RESEARCH_MODE:-false}
-      - OPENSEARCH_HOST=${OPENSEARCH_HOST:-100.110.112.98}
+      - OPENSEARCH_HOST=${OPENSEARCH_HOST:-<qnap-tailscale-ip>}
       - OPENSEARCH_PORT=${OPENSEARCH_PORT:-9200}
       - OPENSEARCH_USER=${OPENSEARCH_USER:-admin}
       - OPENSEARCH_PASS=${OPENSEARCH_PASS}

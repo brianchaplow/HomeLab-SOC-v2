@@ -63,7 +63,7 @@ Traffic flows through three security layers before reaching the SOC:
                ┌────────────────────▼────────────────────┐
                │          GCP VM (Origin)                │
                │   Apache • Fluent Bit • Umami           │
-               │   34.48.201.94 (Tailscale: 100.125.40.97)│
+               │   <gcp-public-ip> (Tailscale: <gcp-tailscale-ip>)│
                └────────────────────┬────────────────────┘
                                     │
                        Tailscale WireGuard Tunnel

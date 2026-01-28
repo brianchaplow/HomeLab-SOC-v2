@@ -37,7 +37,7 @@ class SOCOpenSearchClient:
     
     def __init__(self):
         """Initialize OpenSearch connection from environment variables."""
-        self.host = os.getenv('OPENSEARCH_HOST', '100.110.112.98')
+        self.host = os.getenv('OPENSEARCH_HOST', '<qnap-tailscale-ip>')
         self.port = int(os.getenv('OPENSEARCH_PORT', 9200))
         self.user = os.getenv('OPENSEARCH_USER', 'admin')
         self.password = os.getenv('OPENSEARCH_PASS', '')
