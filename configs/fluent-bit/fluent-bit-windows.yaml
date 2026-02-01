@@ -1,0 +1,62 @@
+# Fluent Bit Configuration - Windows Endpoints
+# Location: C:\Program Files\fluent-bit\conf\fluent-bit.yaml
+# Applies to: DC01 (10.10.30.40), WS01 (10.10.30.41)
+# Domain: smokehouse.local
+
+service:
+  flush: 5
+  daemon: off
+  log_level: info
+  parsers_file: parsers.conf
+
+pipeline:
+  inputs:
+    # Windows Event Log - Security
+    - name: winlog
+      tag: winlog.security
+      channels: Security
+      interval_sec: 1
+      db: C:\ProgramData\fluent-bit\security.db
+
+    # Windows Event Log - Sysmon (if installed)
+    - name: winlog
+      tag: winlog.sysmon
+      channels: Microsoft-Windows-Sysmon/Operational
+      interval_sec: 1
+      db: C:\ProgramData\fluent-bit\sysmon.db
+
+    # Windows Event Log - PowerShell
+    - name: winlog
+      tag: winlog.powershell
+      channels: Microsoft-Windows-PowerShell/Operational
+      interval_sec: 1
+      db: C:\ProgramData\fluent-bit\powershell.db
+
+  filters:
+    # Add hostname for identification
+    - name: modify
+      match: winlog.*
+      add:
+        source: windows
+        vlan: Lab
+        domain: smokehouse.local
+
+    # Lua parser for Sysmon events (extract command lines, etc.)
+    - name: lua
+      match: winlog.sysmon
+      script: sysmon_parser.lua
+      call: parse_sysmon
+
+  outputs:
+    # Send to smokehouse via VLAN 20
+    # DC01/WS01 on VLAN 30 can reach VLAN 20 per firewall rules
+    - name: opensearch
+      match: winlog.*
+      host: ${OPENSEARCH_HOST}
+      port: ${OPENSEARCH_PORT}
+      http_user: ${OPENSEARCH_USER}
+      http_passwd: ${OPENSEARCH_PASS}
+      index: winlog-${HOSTNAME}
+      tls: on
+      tls.verify: off
+      suppress_type_name: on

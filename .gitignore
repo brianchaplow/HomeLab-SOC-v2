@@ -1,0 +1,53 @@
+# Environment files with secrets
+.env
+configs/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Sensitive data
+*.pem
+*.key
+*.crt
+secrets/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Node (if any JS tooling used)
+node_modules/
+
+# Database files
+*.db
+*.sqlite
+
+# Backup files
+*.bak
+*.backup
