@@ -105,21 +105,22 @@ services:
     command: /fluent-bit/bin/fluent-bit -c /fluentbit/fluent-bit.conf
 
   # =============================================================================
-  # ZEEK - Network Security Monitor
+  # ZEEK - Network Security Monitor (SPAN Port Capture)
   # =============================================================================
+  # NOTE: Uses host networking to access physical interface eth4 (SPAN mirror)
   zeek:
     image: zeek/zeek:latest
     container_name: zeek
     restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     volumes:
       - /share/Container/SOC/logs/zeek:/var/log/zeek
-      - /share/Container/SOC/containers/zeek:/usr/local/zeek/etc
-    networks:
-      - soc-network
-    # Zeek typically runs manually for PCAP analysis
-    # command: zeekctl deploy
-    tty: true
-    stdin_open: true
+      - /share/Container/SOC/containers/zeek/homelab.zeek:/opt/zeek/homelab.zeek:ro
+    working_dir: /var/log/zeek
+    command: zeek -i eth4 -C local /opt/zeek/homelab.zeek
 
   # =============================================================================
   # CYBERCHEF - Data Analysis Tool

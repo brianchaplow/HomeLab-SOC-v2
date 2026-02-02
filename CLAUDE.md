@@ -1,0 +1,1 @@
+/home/butcher/soc/CLAUDE.md
