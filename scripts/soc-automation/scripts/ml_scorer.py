@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+import yaml
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -22,6 +23,18 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from utils.opensearch_client import get_client
 from utils.discord_notify import get_notifier
+
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
+
+
+def load_config() -> Dict[str, Any]:
+    """Load configuration from YAML file."""
+    try:
+        with open(CONFIG_PATH) as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        logger.warning(f"Could not load config: {e}, using defaults")
+        return {}
 
 # Logging
 logging.basicConfig(
@@ -246,9 +259,13 @@ def run_scoring():
     if not os_client.test_connection():
         logger.error("Cannot connect to OpenSearch")
         return
-    
+
+    config = load_config()
+    alerts_index = config.get('ml_scoring', {}).get('source_index', 'suricata')
+    logger.info(f"Scoring alerts from index: {alerts_index}")
+
     notifier = get_notifier()
-    
+
     # Query unscored alerts
     query = {
         "size": BATCH_SIZE,
@@ -267,7 +284,7 @@ def run_scoring():
     }
     
     try:
-        response = os_client.client.search(index='fluentbit-default', body=query)
+        response = os_client.client.search(index=alerts_index, body=query)
         hits = response['hits']['hits']
     except Exception as e:
         logger.error(f"Query failed: {e}")
@@ -300,7 +317,7 @@ def run_scoring():
     for doc_id, alert in zip(doc_ids, scored_alerts):
         try:
             os_client.client.update(
-                index='fluentbit-default',
+                index=alerts_index,
                 id=doc_id,
                 body={
                     "doc": {
