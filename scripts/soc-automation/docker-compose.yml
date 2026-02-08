@@ -2,7 +2,7 @@
 # SOC AUTOMATION - DOCKER COMPOSE
 # Purpose: Python-based SOC automation for IP enrichment, auto-blocking,
 #          and watch turnover reports (morning/evening digests)
-# Author:  Brian S. Chaplow (Chappy McNasty)
+# Author:  Brian S. Chaplow
 # 
 # Services:
 #   - soc-automation: Main Python container with cron scheduling

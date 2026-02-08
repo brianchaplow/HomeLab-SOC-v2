@@ -1,6 +1,6 @@
 # HomeLab SOC — Unified Project Reference
 
-**Owner:** Brian Chaplow (Chappy McNasty)
+**Owner:** Brian Chaplow
 **Updated:** 2026-02-02
 **GitHub:** github.com/brianchaplow
 
