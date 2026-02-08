@@ -296,28 +296,29 @@ def run_scoring():
     
     logger.info(f"Found {len(hits)} unscored alerts")
     
-    # Extract alerts and score
+    # Extract alerts and score — preserve each doc's actual index for updates
     alerts = [hit['_source'] for hit in hits]
     doc_ids = [hit['_id'] for hit in hits]
-    
+    doc_indices = [hit['_index'] for hit in hits]
+
     scored_alerts = scorer.score_alerts(alerts)
-    
+
     # Stats
     high_threat = sum(1 for a in scored_alerts if a['ml_score'] >= SCORE_THRESHOLD_HIGH)
     medium_threat = sum(1 for a in scored_alerts if SCORE_THRESHOLD <= a['ml_score'] < SCORE_THRESHOLD_HIGH)
     predicted_attacks = sum(1 for a in scored_alerts if a['ml_prediction'] == 1)
-    
+
     logger.info(f"Scored {len(scored_alerts)} alerts:")
     logger.info(f"  High threat (>={SCORE_THRESHOLD_HIGH}): {high_threat}")
     logger.info(f"  Medium threat (>={SCORE_THRESHOLD}): {medium_threat}")
     logger.info(f"  Total predicted attacks: {predicted_attacks}")
-    
-    # Update OpenSearch
+
+    # Update OpenSearch — use each doc's actual index (not the multi-index search pattern)
     updated = 0
-    for doc_id, alert in zip(doc_ids, scored_alerts):
+    for doc_id, doc_index, alert in zip(doc_ids, doc_indices, scored_alerts):
         try:
             os_client.client.update(
-                index=alerts_index,
+                index=doc_index,
                 id=doc_id,
                 body={
                     "doc": {
@@ -334,25 +335,70 @@ def run_scoring():
     
     logger.info(f"Updated {updated}/{len(scored_alerts)} documents")
     
-    # Alert on high threats
-    for alert in scored_alerts:
-        if alert['ml_score'] >= SCORE_THRESHOLD_HIGH:
-            sig = alert.get('alert', {}).get('signature', 'Unknown')
-            src = alert.get('src_ip', 'Unknown')
-            dest = alert.get('dest_ip', 'Unknown')
-            port = alert.get('dest_port', 'Unknown')
-            
-            notifier.send_embed(
-                title="🤖 ML HIGH THREAT DETECTED",
-                description=f"ML model detected high-confidence attack",
-                color=0xFF0000,
-                fields=[
-                    {"name": "Score", "value": f"{alert['ml_score']:.3f}", "inline": True},
-                    {"name": "Source", "value": src, "inline": True},
-                    {"name": "Target", "value": f"{dest}:{port}", "inline": True},
-                    {"name": "Signature", "value": sig[:100], "inline": False}
-                ]
-            )
+    # Send dashboard-style summary embed (single message instead of per-alert spam)
+    if predicted_attacks > 0:
+        from collections import Counter
+
+        threat_alerts = [a for a in scored_alerts if a['ml_prediction'] == 1]
+
+        sig_counts = Counter(
+            a.get('alert', {}).get('signature', 'Unknown') for a in threat_alerts
+        )
+        src_counts = Counter(a.get('src_ip', 'Unknown') for a in threat_alerts)
+        dest_counts = Counter(
+            f"{a.get('dest_ip', '?')}:{a.get('dest_port', '?')}" for a in threat_alerts
+        )
+        cat_counts = Counter(
+            a.get('alert', {}).get('category', 'Unknown') for a in threat_alerts
+        )
+
+        all_scores = [a['ml_score'] for a in scored_alerts]
+
+        def fmt_top(counter, n=5):
+            return "\n".join(
+                f"`{count:>3}` {name[:60]}" for name, count in counter.most_common(n)
+            ) or "None"
+
+        color = 0xFF0000 if high_threat > 0 else 0xFF9500
+
+        notifier.send_embed(
+            title="\U0001f916 ML Scoring Report",
+            description=f"Scored **{len(scored_alerts)}** alerts \u2014 **{predicted_attacks}** threats detected",
+            color=color,
+            fields=[
+                {
+                    "name": "Threat Summary",
+                    "value": f"\U0001f534 High (\u22650.90): **{high_threat}**\n\U0001f7e0 Medium (\u22650.75): **{medium_threat}**\n\U0001f7e2 Benign: **{len(scored_alerts) - predicted_attacks}**",
+                    "inline": True,
+                },
+                {
+                    "name": "Score Range",
+                    "value": f"Max: `{max(all_scores):.3f}`\nMean: `{np.mean(all_scores):.3f}`\nMedian: `{np.median(all_scores):.3f}`",
+                    "inline": True,
+                },
+                {
+                    "name": "Top Signatures",
+                    "value": fmt_top(sig_counts),
+                    "inline": False,
+                },
+                {
+                    "name": "Top Sources",
+                    "value": fmt_top(src_counts),
+                    "inline": True,
+                },
+                {
+                    "name": "Top Targets",
+                    "value": fmt_top(dest_counts),
+                    "inline": True,
+                },
+                {
+                    "name": "Categories",
+                    "value": fmt_top(cat_counts),
+                    "inline": False,
+                },
+            ],
+            footer=f"Scoring run at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC",
+        )
     
     logger.info("=" * 60)
     logger.info("ML SCORING COMPLETE")

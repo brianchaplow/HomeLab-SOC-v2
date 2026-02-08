@@ -138,7 +138,8 @@ digest:
 # =============================================================================
 ml_scoring:
   # OpenSearch index containing Suricata alerts to score
-  source_index: "suricata"
+  # Comma-separated for backwards compat with pre-migration fluentbit-default data
+  source_index: "fluentbit-default,suricata"
 
 # =============================================================================
 # ALERT THRESHOLDS
