@@ -6,12 +6,19 @@ This directory contains dashboard exports for both OpenSearch Dashboards (NDJSON
 
 ## OpenSearch Dashboards
 
-| File | Dashboard | Description |
-|------|-----------|-------------|
-| `soc-overview-portfolio.ndjson` | SOC Overview - Portfolio | Executive summary view |
-| `nids-detection-overview.ndjson` | NIDS - Detection Overview | Suricata operational metrics |
-| `endpoint-windows-security.ndjson` | Endpoint - Windows Security | Windows event telemetry |
-| `soc-threat-intelligence.ndjson` | SOC - Threat Intelligence | AbuseIPDB enrichment data |
+| File | Dashboard | Panels | Description |
+|------|-----------|--------|-------------|
+| `soc-overview-portfolio.ndjson` | SOC Overview - Portfolio | 8 | Executive summary view |
+| `nids-detection-overview.ndjson` | NIDS - Detection Overview | 4 | Suricata alert metrics |
+| `nids-overview-suricata.ndjson` | NIDS Overview - Suricata | 10 | Suricata event types, top talkers, traffic patterns |
+| `ml-threat-detection.ndjson` | ML - Threat Detection | 10 | ML scoring metrics, score distributions, verdicts |
+| `purple-team-lab-attacks.ndjson` | Purple Team - Lab Attacks | 15 | VLAN 40 attack analysis with ML scoring integration |
+| `endpoint-windows-security.ndjson` | Endpoint - Windows Security | 3 | Windows event telemetry |
+| `windows-security-endpoint-visibility.ndjson` | Windows Security - Endpoint Visibility | 5 | Sysmon event deep-dive |
+| `soc-threat-intelligence.ndjson` | SOC - Threat Intelligence | 3 | AbuseIPDB enrichment data |
+| `website-overview.ndjson` | Website - Overview | 9 | Apache web traffic analytics |
+| `honeypot-research.ndjson` | Honeypot Research - INST 570 | 25 | WordPress honeypot credential analysis |
+| `fingerprint-monitor.ndjson` | Fingerprint Monitor | 7 | Browser fingerprint tracking |
 
 ### OpenSearch Export Instructions
 
@@ -35,9 +42,10 @@ To import dashboards to a new OpenSearch instance:
 ### OpenSearch Prerequisites
 
 Before importing, ensure these index patterns exist:
-- `apache-parsed-v2`
-- `fluentbit-default`
-- `winlog-*`
+- `fluentbit-default,suricata,zeek` (network IDS alerts + flows)
+- `apache-parsed-v2` (website traffic)
+- `winlog-*` (Windows endpoint events)
+- `honeypot-credentials*` (honeypot data)
 
 ---
 
@@ -105,4 +113,4 @@ To update a dashboard export:
 
 - OpenSearch dashboards should be regenerated whenever significant changes are made
 - Grafana dashboards use Flux queries (InfluxDB 2.x), not InfluxQL
-- Export date: January 2026
+- Export date: February 2026
