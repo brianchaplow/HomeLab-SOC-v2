@@ -1,0 +1,69 @@
+{
+  "description": "GeoIP enrichment pipeline for Apache logs",
+  "processors": [
+    {
+      "geoip": {
+        "field": "client_ip",
+        "target_field": "geoip",
+        "ignore_missing": true,
+        "properties": [
+          "city_name",
+          "country_name",
+          "country_iso_code",
+          "continent_name",
+          "region_name",
+          "region_iso_code",
+          "location",
+          "timezone"
+        ]
+      }
+    },
+    {
+      "geoip": {
+        "field": "src_ip",
+        "target_field": "src_geoip",
+        "ignore_missing": true,
+        "properties": [
+          "city_name",
+          "country_name",
+          "country_iso_code",
+          "location"
+        ]
+      }
+    },
+    {
+      "geoip": {
+        "field": "dest_ip",
+        "target_field": "dest_geoip",
+        "ignore_missing": true,
+        "properties": [
+          "city_name",
+          "country_name",
+          "country_iso_code",
+          "location"
+        ]
+      }
+    },
+    {
+      "user_agent": {
+        "field": "agent",
+        "target_field": "user_agent",
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "field": "enriched",
+        "value": true
+      }
+    }
+  ],
+  "on_failure": [
+    {
+      "set": {
+        "field": "enrichment_error",
+        "value": "{{ _ingest.on_failure_message }}"
+      }
+    }
+  ]
+}
